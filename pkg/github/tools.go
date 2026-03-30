@@ -241,6 +241,7 @@ func AllTools(t translations.TranslationHelperFunc) []inventory.ServerTool {
 		ManageRepositoryNotificationSubscription(t),
 
 		// Discussion tools
+		CreateDiscussion(t),
 		ListDiscussions(t),
 		GetDiscussion(t),
 		GetDiscussionComments(t),

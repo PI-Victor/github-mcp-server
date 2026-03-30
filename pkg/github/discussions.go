@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	ghErrors "github.com/github/github-mcp-server/pkg/errors"
 	"github.com/github/github-mcp-server/pkg/inventory"
 	"github.com/github/github-mcp-server/pkg/scopes"
 	"github.com/github/github-mcp-server/pkg/translations"
@@ -17,6 +18,16 @@ import (
 )
 
 const DefaultGraphQLPageSize = 30
+
+// CreateDiscussionInput is the input for the createDiscussion mutation.
+// Defined locally because the shurcooL/githubv4 library does not include this type.
+type CreateDiscussionInput struct {
+	RepositoryID     githubv4.ID      `json:"repositoryId"`
+	CategoryID       githubv4.ID      `json:"categoryId"`
+	Title            githubv4.String  `json:"title"`
+	Body             githubv4.String  `json:"body"`
+	ClientMutationID *githubv4.String `json:"clientMutationId,omitempty"`
+}
 
 // Common interface for all discussion query types
 type DiscussionQueryResult interface {
@@ -604,6 +615,114 @@ func ListDiscussionCategories(t translations.TranslationHelperFunc) inventory.Se
 				return nil, nil, fmt.Errorf("failed to marshal discussion categories: %w", err)
 			}
 			return utils.NewToolResultText(string(out)), nil, nil
+		},
+	)
+}
+
+func CreateDiscussion(t translations.TranslationHelperFunc) inventory.ServerTool {
+	return NewTool(
+		ToolsetMetadataDiscussions,
+		mcp.Tool{
+			Name:        "create_discussion",
+			Description: t("TOOL_CREATE_DISCUSSION_DESCRIPTION", "Create a new discussion in a repository."),
+			Annotations: &mcp.ToolAnnotations{
+				Title:        t("TOOL_CREATE_DISCUSSION_USER_TITLE", "Create discussion"),
+				ReadOnlyHint: false,
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"owner": {
+						Type:        "string",
+						Description: "Repository owner",
+					},
+					"repo": {
+						Type:        "string",
+						Description: "Repository name. If not provided, discussion will be created at the organisation level in the .github repository.",
+					},
+					"title": {
+						Type:        "string",
+						Description: "Discussion title",
+					},
+					"body": {
+						Type:        "string",
+						Description: "Discussion body",
+					},
+					"category": {
+						Type:        "string",
+						Description: "Discussion category ID. Use list_discussion_categories to discover available IDs.",
+					},
+				},
+				Required: []string{"owner", "title", "body", "category"},
+			},
+		},
+		[]scopes.Scope{scopes.Repo},
+		func(ctx context.Context, deps ToolDependencies, _ *mcp.CallToolRequest, args map[string]any) (*mcp.CallToolResult, any, error) {
+			owner, err := RequiredParam[string](args, "owner")
+			if err != nil {
+				return utils.NewToolResultError(err.Error()), nil, nil
+			}
+			repo, err := OptionalParam[string](args, "repo")
+			if err != nil {
+				return utils.NewToolResultError(err.Error()), nil, nil
+			}
+			if repo == "" {
+				repo = ".github"
+			}
+			title, err := RequiredParam[string](args, "title")
+			if err != nil {
+				return utils.NewToolResultError(err.Error()), nil, nil
+			}
+			body, err := RequiredParam[string](args, "body")
+			if err != nil {
+				return utils.NewToolResultError(err.Error()), nil, nil
+			}
+			category, err := RequiredParam[string](args, "category")
+			if err != nil {
+				return utils.NewToolResultError(err.Error()), nil, nil
+			}
+
+			client, err := deps.GetGQLClient(ctx)
+			if err != nil {
+				return utils.NewToolResultError(fmt.Sprintf("failed to get GitHub GQL client: %v", err)), nil, nil
+			}
+
+			repositoryID, err := getRepositoryID(ctx, client, owner, repo)
+			if err != nil {
+				return ghErrors.NewGitHubGraphQLErrorResponse(ctx, "Failed to find repository", err), nil, nil
+			}
+
+			input := CreateDiscussionInput{
+				RepositoryID: repositoryID,
+				CategoryID:   githubv4.ID(category),
+				Title:        githubv4.String(title),
+				Body:         githubv4.String(body),
+			}
+
+			var mutation struct {
+				CreateDiscussion struct {
+					Discussion struct {
+						ID  githubv4.ID
+						URL githubv4.String `graphql:"url"`
+					}
+				} `graphql:"createDiscussion(input: $input)"`
+			}
+
+			if err := client.Mutate(ctx, &mutation, input, nil); err != nil {
+				return ghErrors.NewGitHubGraphQLErrorResponse(ctx, "Failed to create discussion", err), nil, nil
+			}
+
+			minimalResponse := MinimalResponse{
+				ID:  fmt.Sprintf("%v", mutation.CreateDiscussion.Discussion.ID),
+				URL: string(mutation.CreateDiscussion.Discussion.URL),
+			}
+
+			r, err := json.Marshal(minimalResponse)
+			if err != nil {
+				return utils.NewToolResultErrorFromErr("failed to marshal response", err), nil, nil
+			}
+
+			return utils.NewToolResultText(string(r)), nil, nil
 		},
 	)
 }
