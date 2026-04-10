@@ -1,0 +1,39 @@
+{
+  "annotations": {
+    "title": "Add reply to discussion comment"
+  },
+  "description": "Add a reply to an existing discussion comment.",
+  "inputSchema": {
+    "properties": {
+      "body": {
+        "description": "Reply text",
+        "type": "string"
+      },
+      "commentId": {
+        "description": "The node ID of the discussion comment to reply to",
+        "type": "string"
+      },
+      "discussionNumber": {
+        "description": "Discussion number",
+        "type": "number"
+      },
+      "owner": {
+        "description": "Repository owner",
+        "type": "string"
+      },
+      "repo": {
+        "description": "Repository name",
+        "type": "string"
+      }
+    },
+    "required": [
+      "owner",
+      "repo",
+      "discussionNumber",
+      "commentId",
+      "body"
+    ],
+    "type": "object"
+  },
+  "name": "add_reply_to_discussion_comment"
+}

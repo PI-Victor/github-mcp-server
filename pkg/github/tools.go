@@ -242,6 +242,8 @@ func AllTools(t translations.TranslationHelperFunc) []inventory.ServerTool {
 
 		// Discussion tools
 		CreateDiscussion(t),
+		AddDiscussionComment(t),
+		AddReplyToDiscussionComment(t),
 		ListDiscussions(t),
 		GetDiscussion(t),
 		GetDiscussionComments(t),

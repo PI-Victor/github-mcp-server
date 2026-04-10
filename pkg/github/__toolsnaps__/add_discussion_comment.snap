@@ -1,0 +1,34 @@
+{
+  "annotations": {
+    "title": "Add discussion comment"
+  },
+  "description": "Add a top-level comment to an existing discussion.",
+  "inputSchema": {
+    "properties": {
+      "body": {
+        "description": "Comment body",
+        "type": "string"
+      },
+      "discussionNumber": {
+        "description": "Discussion number",
+        "type": "number"
+      },
+      "owner": {
+        "description": "Repository owner",
+        "type": "string"
+      },
+      "repo": {
+        "description": "Repository name",
+        "type": "string"
+      }
+    },
+    "required": [
+      "owner",
+      "repo",
+      "discussionNumber",
+      "body"
+    ],
+    "type": "object"
+  },
+  "name": "add_discussion_comment"
+}
