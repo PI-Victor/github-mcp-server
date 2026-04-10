@@ -730,6 +730,21 @@ The following sets of tools are available:
 
 <summary><picture><source media="(prefers-color-scheme: dark)" srcset="pkg/octicons/icons/comment-discussion-dark.png"><source media="(prefers-color-scheme: light)" srcset="pkg/octicons/icons/comment-discussion-light.png"><img src="pkg/octicons/icons/comment-discussion-light.png" width="20" height="20" alt="comment-discussion"></picture> Discussions</summary>
 
+- **add_discussion_comment** - Add discussion comment
+  - **Required OAuth Scopes**: `repo`
+  - `body`: Comment body (string, required)
+  - `discussionNumber`: Discussion number (number, required)
+  - `owner`: Repository owner (string, required)
+  - `repo`: Repository name (string, required)
+
+- **add_reply_to_discussion_comment** - Add reply to discussion comment
+  - **Required OAuth Scopes**: `repo`
+  - `body`: Reply text (string, required)
+  - `commentId`: The node ID of the discussion comment to reply to (string, required)
+  - `discussionNumber`: Discussion number (number, required)
+  - `owner`: Repository owner (string, required)
+  - `repo`: Repository name (string, required)
+
 - **get_discussion** - Get discussion
   - **Required OAuth Scopes**: `repo`
   - `discussionNumber`: Discussion Number (number, required)
